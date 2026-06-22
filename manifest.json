@@ -1,0 +1,13 @@
+{
+  "name": "Mass",
+  "short_name": "Mass",
+  "description": "Seguimiento de macros y calorías",
+  "start_url": "/Mass/",
+  "scope": "/Mass/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

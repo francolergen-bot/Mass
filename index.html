@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mass" />
+  <meta name="theme-color" content="#0f1117" />
+  <title>Mass 💪</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { background: #0f1117; overscroll-behavior: none; }
+    input, select, button, textarea { font-family: inherit; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script type="text/babel">
+const { useState, useMemo } = React;
+
+const C = {
+  bg:"#0f1117", surface:"#1a1d27", card:"#22263a", border:"#2e3350",
+  accent:"#8b9fd4", accentDim:"#3d4a7a", text:"#e8eaf0", textDim:"#8a8fa8",
+  textMuted:"#555c7a", protein:"#7ec8e3", carbs:"#f0c97a", fat:"#e38f7e", danger:"#e37e7e",
+};
+const S = {
+  app:{ minHeight:"100dvh", background:C.bg, color:C.text, fontFamily:"'Inter','Segoe UI',system-ui,sans-serif", maxWidth:480, margin:"0 auto", paddingBottom:80 },
+  header:{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"16px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10 },
+  headerTitle:{ fontSize:18, fontWeight:700, color:C.text, letterSpacing:"-0.3px" },
+  nav:{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:480, background:C.surface, borderTop:`1px solid ${C.border}`, display:"flex", zIndex:10 },
+  navBtn:(a)=>({ flex:1, padding:"12px 0 10px", border:"none", background:"transparent", color:a?C.accent:C.textMuted, fontSize:11, fontWeight:a?700:400, cursor:"pointer", display:"flex", flexDirection:"column", alignItems:"center", gap:3 }),
+  card:{ background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"16px 18px", marginBottom:12 },
+  label:{ fontSize:11, fontWeight:600, color:C.textDim, letterSpacing:"0.5px", textTransform:"uppercase", marginBottom:6 },
+  input:{ width:"100%", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:15, padding:"10px 14px", outline:"none", boxSizing:"border-box" },
+  select:{ width:"100%", background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, color:C.text, fontSize:15, padding:"10px 14px", outline:"none", appearance:"none" },
+  btn:(v="primary")=>({ border:"none", borderRadius:10, padding:"11px 20px", fontWeight:600, fontSize:14, cursor:"pointer", background:v==="primary"?C.accent:v==="danger"?C.danger:C.accentDim, color:v==="primary"?C.bg:v==="danger"?C.bg:C.text }),
+};
+
+const DB = [
+  {nombre:"Peceto (cocido)",kcal:180,proteinas:30,carbohidratos:0,grasas:6,medida:"g"},
+  {nombre:"Milanesa de nalga (frita)",kcal:250,proteinas:25,carbohidratos:10,grasas:13,medida:"g"},
+  {nombre:"Milanesa de pollo (frita)",kcal:230,proteinas:22,carbohidratos:10,grasas:12,medida:"g"},
+  {nombre:"Pechuga de pollo (plancha)",kcal:165,proteinas:31,carbohidratos:0,grasas:4,medida:"g"},
+  {nombre:"Muslo de pollo (sin piel)",kcal:170,proteinas:25,carbohidratos:0,grasas:8,medida:"g"},
+  {nombre:"Asado de tira",kcal:290,proteinas:22,carbohidratos:0,grasas:22,medida:"g"},
+  {nombre:"Bife de chorizo",kcal:270,proteinas:26,carbohidratos:0,grasas:18,medida:"g"},
+  {nombre:"Carne picada (magra)",kcal:215,proteinas:22,carbohidratos:0,grasas:14,medida:"g"},
+  {nombre:"Atún al natural (lata)",kcal:116,proteinas:26,carbohidratos:0,grasas:1,medida:"g"},
+  {nombre:"Merluza (al horno)",kcal:90,proteinas:18,carbohidratos:0,grasas:2,medida:"g"},
+  {nombre:"Salchicha Viena",kcal:280,proteinas:12,carbohidratos:3,grasas:25,medida:"unidad",gramsPorUnidad:40,unidadLabel:"salchicha"},
+  {nombre:"Chorizo colorado",kcal:350,proteinas:14,carbohidratos:2,grasas:32,medida:"unidad",gramsPorUnidad:100,unidadLabel:"chorizo"},
+  {nombre:"Morcilla",kcal:380,proteinas:13,carbohidratos:5,grasas:35,medida:"unidad",gramsPorUnidad:100,unidadLabel:"morcilla"},
+  {nombre:"Huevo entero",kcal:143,proteinas:13,carbohidratos:1,grasas:10,medida:"unidad",gramsPorUnidad:55,unidadLabel:"huevo"},
+  {nombre:"Clara de huevo",kcal:52,proteinas:11,carbohidratos:1,grasas:0,medida:"unidad",gramsPorUnidad:35,unidadLabel:"clara"},
+  {nombre:"Leche entera",kcal:61,proteinas:3,carbohidratos:5,grasas:3,medida:"g"},
+  {nombre:"Leche descremada",kcal:35,proteinas:3,carbohidratos:5,grasas:0,medida:"g"},
+  {nombre:"Yogur natural",kcal:61,proteinas:3,carbohidratos:5,grasas:3,medida:"g"},
+  {nombre:"Yogur descremado",kcal:45,proteinas:4,carbohidratos:6,grasas:0,medida:"g"},
+  {nombre:"Queso fresco",kcal:270,proteinas:18,carbohidratos:2,grasas:21,medida:"g"},
+  {nombre:"Queso port salut",kcal:310,proteinas:21,carbohidratos:1,grasas:25,medida:"g"},
+  {nombre:"Queso rallado",kcal:390,proteinas:32,carbohidratos:2,grasas:28,medida:"g"},
+  {nombre:"Ricota",kcal:174,proteinas:11,carbohidratos:3,grasas:13,medida:"g"},
+  {nombre:"Arroz blanco (cocido)",kcal:130,proteinas:3,carbohidratos:28,grasas:0,medida:"g"},
+  {nombre:"Arroz integral (cocido)",kcal:123,proteinas:3,carbohidratos:26,grasas:1,medida:"g"},
+  {nombre:"Fideos (cocidos)",kcal:158,proteinas:6,carbohidratos:31,grasas:1,medida:"g"},
+  {nombre:"Ñoquis (cocidos)",kcal:130,proteinas:4,carbohidratos:26,grasas:1,medida:"g"},
+  {nombre:"Avena (cruda)",kcal:389,proteinas:17,carbohidratos:66,grasas:7,medida:"g"},
+  {nombre:"Polenta (cocida)",kcal:70,proteinas:2,carbohidratos:15,grasas:0,medida:"g"},
+  {nombre:"Harina de trigo",kcal:364,proteinas:10,carbohidratos:76,grasas:1,medida:"g"},
+  {nombre:"Pan francés",kcal:270,proteinas:9,carbohidratos:53,grasas:2,medida:"unidad",gramsPorUnidad:50,unidadLabel:"marraqueta"},
+  {nombre:"Pan lactal blanco",kcal:265,proteinas:8,carbohidratos:50,grasas:4,medida:"unidad",gramsPorUnidad:25,unidadLabel:"rebanada"},
+  {nombre:"Pan lactal integral",kcal:245,proteinas:9,carbohidratos:44,grasas:4,medida:"unidad",gramsPorUnidad:25,unidadLabel:"rebanada"},
+  {nombre:"Galletitas de agua",kcal:420,proteinas:10,carbohidratos:72,grasas:11,medida:"unidad",gramsPorUnidad:7,unidadLabel:"galletita"},
+  {nombre:"Lentejas (cocidas)",kcal:116,proteinas:9,carbohidratos:20,grasas:0,medida:"g"},
+  {nombre:"Garbanzos (cocidos)",kcal:164,proteinas:9,carbohidratos:27,grasas:3,medida:"g"},
+  {nombre:"Porotos negros (cocidos)",kcal:132,proteinas:9,carbohidratos:24,grasas:1,medida:"g"},
+  {nombre:"Papa (hervida)",kcal:87,proteinas:2,carbohidratos:20,grasas:0,medida:"g"},
+  {nombre:"Papa (frita)",kcal:312,proteinas:4,carbohidratos:41,grasas:15,medida:"g"},
+  {nombre:"Batata (hervida)",kcal:86,proteinas:2,carbohidratos:20,grasas:0,medida:"g"},
+  {nombre:"Zanahoria",kcal:41,proteinas:1,carbohidratos:10,grasas:0,medida:"g"},
+  {nombre:"Tomate",kcal:18,proteinas:1,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Lechuga",kcal:15,proteinas:1,carbohidratos:3,grasas:0,medida:"g"},
+  {nombre:"Espinaca (cocida)",kcal:23,proteinas:3,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Zapallo (cocido)",kcal:26,proteinas:1,carbohidratos:6,grasas:0,medida:"g"},
+  {nombre:"Zucchini (cocido)",kcal:17,proteinas:1,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Brócoli (cocido)",kcal:35,proteinas:2,carbohidratos:7,grasas:0,medida:"g"},
+  {nombre:"Choclo (cocido)",kcal:96,proteinas:3,carbohidratos:21,grasas:1,medida:"unidad",gramsPorUnidad:120,unidadLabel:"choclo"},
+  {nombre:"Cebolla",kcal:40,proteinas:1,carbohidratos:9,grasas:0,medida:"g"},
+  {nombre:"Pimiento rojo",kcal:31,proteinas:1,carbohidratos:7,grasas:0,medida:"g"},
+  {nombre:"Banana",kcal:89,proteinas:1,carbohidratos:23,grasas:0,medida:"unidad",gramsPorUnidad:120,unidadLabel:"banana"},
+  {nombre:"Manzana",kcal:52,proteinas:0,carbohidratos:14,grasas:0,medida:"unidad",gramsPorUnidad:150,unidadLabel:"manzana"},
+  {nombre:"Naranja",kcal:47,proteinas:1,carbohidratos:12,grasas:0,medida:"unidad",gramsPorUnidad:180,unidadLabel:"naranja"},
+  {nombre:"Mandarina",kcal:53,proteinas:1,carbohidratos:13,grasas:0,medida:"unidad",gramsPorUnidad:90,unidadLabel:"mandarina"},
+  {nombre:"Pera",kcal:57,proteinas:0,carbohidratos:15,grasas:0,medida:"unidad",gramsPorUnidad:160,unidadLabel:"pera"},
+  {nombre:"Durazno",kcal:39,proteinas:1,carbohidratos:10,grasas:0,medida:"unidad",gramsPorUnidad:130,unidadLabel:"durazno"},
+  {nombre:"Uva",kcal:69,proteinas:1,carbohidratos:18,grasas:0,medida:"g"},
+  {nombre:"Frutilla",kcal:32,proteinas:1,carbohidratos:8,grasas:0,medida:"g"},
+  {nombre:"Palta",kcal:160,proteinas:2,carbohidratos:9,grasas:15,medida:"unidad",gramsPorUnidad:170,unidadLabel:"palta"},
+  {nombre:"Aceite (girasol/oliva)",kcal:884,proteinas:0,carbohidratos:0,grasas:100,medida:"g"},
+  {nombre:"Manteca",kcal:717,proteinas:1,carbohidratos:0,grasas:81,medida:"g"},
+  {nombre:"Mayonesa",kcal:680,proteinas:1,carbohidratos:2,grasas:75,medida:"g"},
+  {nombre:"Maní tostado",kcal:567,proteinas:26,carbohidratos:16,grasas:49,medida:"g"},
+  {nombre:"Almendras",kcal:579,proteinas:21,carbohidratos:22,grasas:50,medida:"g"},
+  {nombre:"Dulce de leche",kcal:310,proteinas:7,carbohidratos:55,grasas:7,medida:"g"},
+  {nombre:"Alfajor triple",kcal:430,proteinas:6,carbohidratos:65,grasas:17,medida:"unidad",gramsPorUnidad:80,unidadLabel:"alfajor"},
+  {nombre:"Medialuna (manteca)",kcal:380,proteinas:8,carbohidratos:45,grasas:19,medida:"unidad",gramsPorUnidad:40,unidadLabel:"medialuna"},
+  {nombre:"Empanada de carne",kcal:250,proteinas:10,carbohidratos:28,grasas:11,medida:"unidad",gramsPorUnidad:90,unidadLabel:"empanada"},
+  {nombre:"Pizza mozzarella",kcal:266,proteinas:11,carbohidratos:33,grasas:10,medida:"unidad",gramsPorUnidad:120,unidadLabel:"porción"},
+  {nombre:"Hamburguesa (casera)",kcal:250,proteinas:20,carbohidratos:3,grasas:18,medida:"unidad",gramsPorUnidad:120,unidadLabel:"hamburguesa"},
+  {nombre:"Proteína whey (polvo)",kcal:380,proteinas:75,carbohidratos:8,grasas:5,medida:"g"},
+  {nombre:"Aceitunas verdes",kcal:145,proteinas:1,carbohidratos:4,grasas:15,medida:"g"},
+  {nombre:"Aceitunas negras",kcal:115,proteinas:1,carbohidratos:6,grasas:11,medida:"g"},
+  {nombre:"Pepinillos",kcal:11,proteinas:1,carbohidratos:2,grasas:0,medida:"g"},
+  {nombre:"Alcaparras",kcal:23,proteinas:2,carbohidratos:5,grasas:1,medida:"g"},
+  {nombre:"Ajo",kcal:149,proteinas:6,carbohidratos:33,grasas:1,medida:"g"},
+  {nombre:"Apio",kcal:16,proteinas:1,carbohidratos:3,grasas:0,medida:"g"},
+  {nombre:"Remolacha (cocida)",kcal:44,proteinas:2,carbohidratos:10,grasas:0,medida:"g"},
+  {nombre:"Hinojo",kcal:31,proteinas:1,carbohidratos:7,grasas:0,medida:"g"},
+  {nombre:"Repollo",kcal:25,proteinas:1,carbohidratos:6,grasas:0,medida:"g"},
+  {nombre:"Coliflor (cocida)",kcal:23,proteinas:2,carbohidratos:5,grasas:0,medida:"g"},
+  {nombre:"Berenjena (cocida)",kcal:35,proteinas:1,carbohidratos:8,grasas:0,medida:"g"},
+  {nombre:"Pepino",kcal:15,proteinas:1,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Rúcula",kcal:25,proteinas:3,carbohidratos:4,grasas:1,medida:"g"},
+  {nombre:"Espárragos (cocidos)",kcal:22,proteinas:2,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Alcaucil (cocido)",kcal:53,proteinas:4,carbohidratos:12,grasas:0,medida:"g"},
+  {nombre:"Puerro",kcal:61,proteinas:2,carbohidratos:14,grasas:0,medida:"g"},
+  {nombre:"Acelga (cocida)",kcal:20,proteinas:2,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Radicheta",kcal:23,proteinas:2,carbohidratos:5,grasas:0,medida:"g"},
+  {nombre:"Champiñones",kcal:22,proteinas:3,carbohidratos:3,grasas:0,medida:"g"},
+  {nombre:"Kiwi",kcal:61,proteinas:1,carbohidratos:15,grasas:1,medida:"unidad",gramsPorUnidad:90,unidadLabel:"kiwi"},
+  {nombre:"Pomelo",kcal:42,proteinas:1,carbohidratos:11,grasas:0,medida:"unidad",gramsPorUnidad:280,unidadLabel:"pomelo"},
+  {nombre:"Ciruela",kcal:46,proteinas:1,carbohidratos:11,grasas:0,medida:"unidad",gramsPorUnidad:70,unidadLabel:"ciruela"},
+  {nombre:"Sandía",kcal:30,proteinas:1,carbohidratos:8,grasas:0,medida:"g"},
+  {nombre:"Melón",kcal:34,proteinas:1,carbohidratos:8,grasas:0,medida:"g"},
+  {nombre:"Ananá",kcal:50,proteinas:1,carbohidratos:13,grasas:0,medida:"g"},
+  {nombre:"Mango",kcal:60,proteinas:1,carbohidratos:15,grasas:0,medida:"unidad",gramsPorUnidad:200,unidadLabel:"mango"},
+  {nombre:"Limón",kcal:29,proteinas:1,carbohidratos:9,grasas:0,medida:"unidad",gramsPorUnidad:80,unidadLabel:"limón"},
+  {nombre:"Higo",kcal:74,proteinas:1,carbohidratos:19,grasas:0,medida:"unidad",gramsPorUnidad:50,unidadLabel:"higo"},
+  {nombre:"Crema de leche",kcal:340,proteinas:2,carbohidratos:3,grasas:36,medida:"g"},
+  {nombre:"Queso brie",kcal:334,proteinas:21,carbohidratos:1,grasas:28,medida:"g"},
+  {nombre:"Queso cheddar",kcal:403,proteinas:25,carbohidratos:1,grasas:33,medida:"g"},
+  {nombre:"Queso mozzarella",kcal:280,proteinas:22,carbohidratos:2,grasas:22,medida:"g"},
+  {nombre:"Kéfir",kcal:61,proteinas:3,carbohidratos:5,grasas:3,medida:"g"},
+  {nombre:"Salmón (al horno)",kcal:208,proteinas:20,carbohidratos:0,grasas:13,medida:"g"},
+  {nombre:"Sardinas en aceite (lata)",kcal:208,proteinas:25,carbohidratos:0,grasas:11,medida:"g"},
+  {nombre:"Calamar (cocido)",kcal:92,proteinas:16,carbohidratos:3,grasas:1,medida:"g"},
+  {nombre:"Langostinos (cocidos)",kcal:99,proteinas:21,carbohidratos:1,grasas:1,medida:"g"},
+  {nombre:"Bondiola (cocida)",kcal:280,proteinas:24,carbohidratos:0,grasas:20,medida:"g"},
+  {nombre:"Lomo de cerdo (cocido)",kcal:185,proteinas:29,carbohidratos:0,grasas:7,medida:"g"},
+  {nombre:"Paleta de cerdo",kcal:250,proteinas:22,carbohidratos:0,grasas:17,medida:"g"},
+  {nombre:"Panceta (frita)",kcal:541,proteinas:14,carbohidratos:1,grasas:54,medida:"g"},
+  {nombre:"Quinoa (cocida)",kcal:120,proteinas:4,carbohidratos:22,grasas:2,medida:"g"},
+  {nombre:"Pan de salvado",kcal:230,proteinas:9,carbohidratos:40,grasas:4,medida:"unidad",gramsPorUnidad:30,unidadLabel:"rebanada"},
+  {nombre:"Tostadas (tipo oblea)",kcal:390,proteinas:9,carbohidratos:75,grasas:5,medida:"unidad",gramsPorUnidad:8,unidadLabel:"tostada"},
+  {nombre:"Copos de maíz",kcal:357,proteinas:8,carbohidratos:80,grasas:1,medida:"g"},
+  {nombre:"Granola",kcal:471,proteinas:10,carbohidratos:64,grasas:20,medida:"g"},
+  {nombre:"Salvado de avena",kcal:246,proteinas:17,carbohidratos:66,grasas:7,medida:"g"},
+  {nombre:"Arroz yamaní (cocido)",kcal:130,proteinas:3,carbohidratos:28,grasas:1,medida:"g"},
+  {nombre:"Semillas de chía",kcal:486,proteinas:17,carbohidratos:42,grasas:31,medida:"g"},
+  {nombre:"Semillas de lino",kcal:534,proteinas:18,carbohidratos:29,grasas:42,medida:"g"},
+  {nombre:"Semillas de girasol",kcal:584,proteinas:21,carbohidratos:20,grasas:51,medida:"g"},
+  {nombre:"Semillas de zapallo",kcal:559,proteinas:30,carbohidratos:11,grasas:49,medida:"g"},
+  {nombre:"Nueces",kcal:654,proteinas:15,carbohidratos:14,grasas:65,medida:"g"},
+  {nombre:"Castañas de cajú",kcal:553,proteinas:18,carbohidratos:30,grasas:44,medida:"g"},
+  {nombre:"Pistachos",kcal:562,proteinas:20,carbohidratos:28,grasas:45,medida:"g"},
+  {nombre:"Kétchup",kcal:112,proteinas:1,carbohidratos:27,grasas:1,medida:"g"},
+  {nombre:"Mostaza",kcal:66,proteinas:4,carbohidratos:6,grasas:4,medida:"g"},
+  {nombre:"Salsa de tomate",kcal:35,proteinas:2,carbohidratos:8,grasas:0,medida:"g"},
+  {nombre:"Chimichurri",kcal:190,proteinas:1,carbohidratos:4,grasas:19,medida:"g"},
+  {nombre:"Jamón cocido",kcal:145,proteinas:17,carbohidratos:2,grasas:8,medida:"g"},
+  {nombre:"Jamón crudo",kcal:250,proteinas:26,carbohidratos:0,grasas:16,medida:"g"},
+  {nombre:"Salame",kcal:400,proteinas:22,carbohidratos:2,grasas:35,medida:"g"},
+  {nombre:"Mortadela",kcal:311,proteinas:14,carbohidratos:3,grasas:28,medida:"g"},
+  {nombre:"Pastrón",kcal:147,proteinas:19,carbohidratos:2,grasas:7,medida:"g"},
+  {nombre:"Paleta (fiambre)",kcal:160,proteinas:18,carbohidratos:2,grasas:9,medida:"g"},
+  {nombre:"Jugo de naranja natural",kcal:45,proteinas:1,carbohidratos:10,grasas:0,medida:"g"},
+  {nombre:"Leche de almendras",kcal:17,proteinas:1,carbohidratos:1,grasas:1,medida:"g"},
+  {nombre:"Tofu (firme)",kcal:76,proteinas:8,carbohidratos:2,grasas:5,medida:"g"},
+  {nombre:"Hummus",kcal:166,proteinas:8,carbohidratos:14,grasas:10,medida:"g"},
+  {nombre:"Miel",kcal:304,proteinas:0,carbohidratos:82,grasas:0,medida:"g"},
+  {nombre:"Mermelada",kcal:250,proteinas:0,carbohidratos:65,grasas:0,medida:"g"},
+  {nombre:"Chocolate amargo (70%)",kcal:598,proteinas:8,carbohidratos:46,grasas:43,medida:"g"},
+  {nombre:"Galletitas de arroz",kcal:387,proteinas:7,carbohidratos:82,grasas:3,medida:"unidad",gramsPorUnidad:10,unidadLabel:"galletita"},
+  {nombre:"Gelatina sin azúcar",kcal:10,proteinas:2,carbohidratos:0,grasas:0,medida:"g"},
+  {nombre:"Caldo de verduras",kcal:8,proteinas:0,carbohidratos:2,grasas:0,medida:"g"},
+  {nombre:"Mantequilla de maní",kcal:588,proteinas:25,carbohidratos:20,grasas:50,medida:"g"},
+  {nombre:"Aceite de coco",kcal:862,proteinas:0,carbohidratos:0,grasas:100,medida:"g"},
+  {nombre:"Café espresso",kcal:2,proteinas:0,carbohidratos:0,grasas:0,medida:"unidad",gramsPorUnidad:30,unidadLabel:"taza"},
+  {nombre:"Café con leche",kcal:47,proteinas:3,carbohidratos:5,grasas:2,medida:"unidad",gramsPorUnidad:200,unidadLabel:"taza"},
+  {nombre:"Mate (sin azúcar)",kcal:2,proteinas:0,carbohidratos:0,grasas:0,medida:"unidad",gramsPorUnidad:250,unidadLabel:"mate"},
+  {nombre:"Té (sin azúcar)",kcal:1,proteinas:0,carbohidratos:0,grasas:0,medida:"unidad",gramsPorUnidad:200,unidadLabel:"taza"},
+  {nombre:"Cacao en polvo (puro)",kcal:228,proteinas:20,carbohidratos:58,grasas:14,medida:"g"},
+  {nombre:"Agua soda",kcal:0,proteinas:0,carbohidratos:0,grasas:0,medida:"g"},
+  {nombre:"Jugo de manzana (natural)",kcal:46,proteinas:0,carbohidratos:11,grasas:0,medida:"g"},
+  {nombre:"Jugo de tomate",kcal:17,proteinas:1,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Cuadril (a la plancha)",kcal:195,proteinas:29,carbohidratos:0,grasas:8,medida:"g"},
+  {nombre:"Paleta (vacuno)",kcal:210,proteinas:26,carbohidratos:0,grasas:11,medida:"g"},
+  {nombre:"Osobuco (cocido)",kcal:175,proteinas:24,carbohidratos:0,grasas:8,medida:"g"},
+  {nombre:"Corazón de vacuno",kcal:112,proteinas:17,carbohidratos:1,grasas:4,medida:"g"},
+  {nombre:"Hígado de vacuno",kcal:135,proteinas:21,carbohidratos:4,grasas:4,medida:"g"},
+  {nombre:"Riñón de vacuno",kcal:97,proteinas:17,carbohidratos:0,grasas:3,medida:"g"},
+  {nombre:"Mondongo (cocido)",kcal:97,proteinas:14,carbohidratos:0,grasas:4,medida:"g"},
+  {nombre:"Chinchulines (fritos)",kcal:350,proteinas:14,carbohidratos:0,grasas:32,medida:"g"},
+  {nombre:"Mollejas (fritas)",kcal:290,proteinas:16,carbohidratos:0,grasas:25,medida:"g"},
+  {nombre:"Vacío (asado)",kcal:250,proteinas:25,carbohidratos:0,grasas:16,medida:"g"},
+  {nombre:"Entraña (asada)",kcal:260,proteinas:26,carbohidratos:0,grasas:17,medida:"g"},
+  {nombre:"Matambre (cocido)",kcal:220,proteinas:28,carbohidratos:0,grasas:12,medida:"g"},
+  {nombre:"Pollo entero (asado)",kcal:215,proteinas:25,carbohidratos:0,grasas:12,medida:"g"},
+  {nombre:"Pata de pollo (sin piel)",kcal:175,proteinas:23,carbohidratos:0,grasas:9,medida:"g"},
+  {nombre:"Alita de pollo (asada)",kcal:290,proteinas:27,carbohidratos:0,grasas:20,medida:"g"},
+  {nombre:"Pechuga de pavo",kcal:135,proteinas:30,carbohidratos:0,grasas:1,medida:"g"},
+  {nombre:"Pato (asado)",kcal:337,proteinas:19,carbohidratos:0,grasas:28,medida:"g"},
+  {nombre:"Caballa al natural (lata)",kcal:156,proteinas:21,carbohidratos:0,grasas:8,medida:"g"},
+  {nombre:"Bacalao (cocido)",kcal:105,proteinas:23,carbohidratos:0,grasas:1,medida:"g"},
+  {nombre:"Trucha (al horno)",kcal:190,proteinas:21,carbohidratos:0,grasas:11,medida:"g"},
+  {nombre:"Mejillones (cocidos)",kcal:86,proteinas:12,carbohidratos:4,grasas:2,medida:"g"},
+  {nombre:"Pulpo (cocido)",kcal:82,proteinas:15,carbohidratos:2,grasas:1,medida:"g"},
+  {nombre:"Vieiras (cocidas)",kcal:111,proteinas:21,carbohidratos:5,grasas:1,medida:"g"},
+  {nombre:"Tomate cherry",kcal:18,proteinas:1,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Espinaca cruda",kcal:23,proteinas:3,carbohidratos:4,grasas:0,medida:"g"},
+  {nombre:"Arvejas (cocidas)",kcal:81,proteinas:5,carbohidratos:14,grasas:0,medida:"g"},
+  {nombre:"Chaucha (cocida)",kcal:31,proteinas:2,carbohidratos:7,grasas:0,medida:"g"},
+  {nombre:"Nabo",kcal:28,proteinas:1,carbohidratos:6,grasas:0,medida:"g"},
+  {nombre:"Rabanitos",kcal:16,proteinas:1,carbohidratos:3,grasas:0,medida:"g"},
+  {nombre:"Berro",kcal:11,proteinas:2,carbohidratos:1,grasas:0,medida:"g"},
+  {nombre:"Palmitos (lata)",kcal:29,proteinas:3,carbohidratos:5,grasas:0,medida:"g"},
+  {nombre:"Hongos portobello",kcal:26,proteinas:2,carbohidratos:5,grasas:0,medida:"g"},
+  {nombre:"Choclo en lata",kcal:86,proteinas:3,carbohidratos:19,grasas:1,medida:"g"},
+  {nombre:"Cebolla de verdeo",kcal:32,proteinas:2,carbohidratos:7,grasas:0,medida:"g"},
+  {nombre:"Morrón verde",kcal:20,proteinas:1,carbohidratos:5,grasas:0,medida:"g"},
+  {nombre:"Frambuesas",kcal:52,proteinas:1,carbohidratos:12,grasas:1,medida:"g"},
+  {nombre:"Arándanos",kcal:57,proteinas:1,carbohidratos:14,grasas:0,medida:"g"},
+  {nombre:"Cerezas",kcal:63,proteinas:1,carbohidratos:16,grasas:0,medida:"g"},
+  {nombre:"Dátiles (secos)",kcal:282,proteinas:2,carbohidratos:75,grasas:0,medida:"g"},
+  {nombre:"Pasas de uva",kcal:299,proteinas:3,carbohidratos:79,grasas:0,medida:"g"},
+  {nombre:"Ciruela seca",kcal:240,proteinas:2,carbohidratos:64,grasas:0,medida:"g"},
+  {nombre:"Coco rallado (seco)",kcal:660,proteinas:7,carbohidratos:23,grasas:65,medida:"g"},
+  {nombre:"Queso untable",kcal:342,proteinas:6,carbohidratos:4,grasas:34,medida:"g"},
+  {nombre:"Leche condensada",kcal:321,proteinas:8,carbohidratos:55,grasas:9,medida:"g"},
+  {nombre:"Helado de crema",kcal:207,proteinas:3,carbohidratos:24,grasas:11,medida:"g"},
+  {nombre:"Flan casero",kcal:130,proteinas:5,carbohidratos:19,grasas:4,medida:"unidad",gramsPorUnidad:120,unidadLabel:"flan"},
+  {nombre:"Huevo de codorniz",kcal:158,proteinas:13,carbohidratos:1,grasas:11,medida:"unidad",gramsPorUnidad:10,unidadLabel:"huevo"},
+  {nombre:"Sémola (cocida)",kcal:65,proteinas:2,carbohidratos:13,grasas:0,medida:"g"},
+  {nombre:"Cuscús (cocido)",kcal:112,proteinas:4,carbohidratos:23,grasas:0,medida:"g"},
+  {nombre:"Tortilla de trigo (wraps)",kcal:306,proteinas:8,carbohidratos:52,grasas:7,medida:"unidad",gramsPorUnidad:40,unidadLabel:"tortilla"},
+  {nombre:"Lasaña (cocida)",kcal:135,proteinas:5,carbohidratos:22,grasas:3,medida:"g"},
+  {nombre:"Arroz con leche",kcal:110,proteinas:3,carbohidratos:20,grasas:2,medida:"g"},
+  {nombre:"Harina de maíz",kcal:361,proteinas:8,carbohidratos:76,grasas:4,medida:"g"},
+  {nombre:"Harina integral",kcal:340,proteinas:13,carbohidratos:70,grasas:2,medida:"g"},
+  {nombre:"Harina de almendras",kcal:576,proteinas:21,carbohidratos:22,grasas:50,medida:"g"},
+  {nombre:"Bizcochuelo (casero)",kcal:340,proteinas:6,carbohidratos:55,grasas:11,medida:"g"},
+  {nombre:"Tarta de verdura (casera)",kcal:220,proteinas:6,carbohidratos:22,grasas:12,medida:"unidad",gramsPorUnidad:150,unidadLabel:"porción"},
+  {nombre:"Locro (porción)",kcal:185,proteinas:10,carbohidratos:20,grasas:7,medida:"g"},
+  {nombre:"Guiso de lentejas",kcal:130,proteinas:7,carbohidratos:18,grasas:3,medida:"g"},
+  {nombre:"Milanesa napolitana",kcal:280,proteinas:22,carbohidratos:12,grasas:16,medida:"unidad",gramsPorUnidad:180,unidadLabel:"milanesa"},
+  {nombre:"Sorrentinos (ricota)",kcal:240,proteinas:10,carbohidratos:35,grasas:7,medida:"unidad",gramsPorUnidad:25,unidadLabel:"sorrentino"},
+  {nombre:"Ravioles (carne, cocidos)",kcal:175,proteinas:8,carbohidratos:26,grasas:5,medida:"g"},
+  {nombre:"Tuco (salsa de tomate casera)",kcal:55,proteinas:2,carbohidratos:9,grasas:2,medida:"g"},
+  {nombre:"Salsa blanca (bechamel)",kcal:118,proteinas:4,carbohidratos:9,grasas:7,medida:"g"},
+  {nombre:"Pebete (con jamón y queso)",kcal:255,proteinas:13,carbohidratos:30,grasas:9,medida:"unidad",gramsPorUnidad:120,unidadLabel:"pebete"},
+  {nombre:"Sándwich de miga (simple)",kcal:215,proteinas:8,carbohidratos:28,grasas:8,medida:"unidad",gramsPorUnidad:60,unidadLabel:"sándwich"},
+  {nombre:"Facturas (cuernitos)",kcal:390,proteinas:7,carbohidratos:50,grasas:18,medida:"unidad",gramsPorUnidad:55,unidadLabel:"cuernito"},
+  {nombre:"Papas fritas (bolsa)",kcal:536,proteinas:7,carbohidratos:53,grasas:35,medida:"g"},
+  {nombre:"Pochoclo (sin manteca)",kcal:375,proteinas:11,carbohidratos:78,grasas:4,medida:"g"},
+  {nombre:"Turrones",kcal:430,proteinas:9,carbohidratos:65,grasas:16,medida:"g"},
+  {nombre:"Caramelos (duros)",kcal:394,proteinas:0,carbohidratos:98,grasas:0,medida:"g"},
+  {nombre:"Chocolate con leche",kcal:535,proteinas:8,carbohidratos:59,grasas:30,medida:"g"},
+  {nombre:"Budín de pan",kcal:250,proteinas:7,carbohidratos:38,grasas:8,medida:"g"},
+  {nombre:"Torta (genérica)",kcal:370,proteinas:5,carbohidratos:52,grasas:17,medida:"g"},
+  {nombre:"Creatina (monohidrato)",kcal:0,proteinas:0,carbohidratos:0,grasas:0,medida:"g"},
+  {nombre:"BCAA (polvo)",kcal:20,proteinas:5,carbohidratos:0,grasas:0,medida:"g"},
+  {nombre:"Dextrosa",kcal:387,proteinas:0,carbohidratos:100,grasas:0,medida:"g"},
+];
+
+const ACTIVITY=[
+  {label:"Sedentario (sin ejercicio)",factor:1.2},
+  {label:"Ligero (1-3 días/sem)",factor:1.375},
+  {label:"Moderado (3-5 días/sem)",factor:1.55},
+  {label:"Activo (6-7 días/sem)",factor:1.725},
+  {label:"Muy activo (2x por día)",factor:1.9},
+];
+const GOALS=[
+  {key:"cut",label:"Perder grasa",delta:-400,emoji:"📉"},
+  {key:"maintain",label:"Mantener peso",delta:0,emoji:"⚖️"},
+  {key:"bulk",label:"Ganar masa",delta:+400,emoji:"📈"},
+];
+
+function calcTDEE(p){
+  if(!p.weight||!p.height||!p.age)return null;
+  const bmr=p.sex==="M"?88.36+13.4*p.weight+4.8*p.height-5.7*p.age:447.6+9.2*p.weight+3.1*p.height-4.3*p.age;
+  return Math.round(bmr*(ACTIVITY[p.activity]?.factor||1.55));
+}
+function calcTargets(p,goal){
+  const tdee=calcTDEE(p);if(!tdee)return null;
+  const g=GOALS.find(x=>x.key===goal)||GOALS[1];
+  const kcal=tdee+g.delta;
+  const protein=Math.round(p.weight*2.2);
+  const fat=Math.round((kcal*0.28)/9);
+  const carbs=Math.round((kcal-protein*4-fat*9)/4);
+  return{kcal,protein,carbs,fat};
+}
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch{return d;}};
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const todayKey=()=>new Date().toISOString().slice(0,10);
+
+function dateKey(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return d.toISOString().slice(0,10);}
+function formatFecha(key){
+  const[y,m,d]=key.split("-").map(Number);
+  const date=new Date(y,m-1,d);
+  if(key===todayKey())return"Hoy";
+  if(key===dateKey(-1))return"Ayer";
+  return date.toLocaleDateString("es-AR",{weekday:"short",day:"numeric",month:"short"});
+}
+function getFrecuentes(){
+  const freq=load("macro_frecuentes",{});
+  return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([n])=>DB.find(f=>f.nombre===n)).filter(Boolean);
+}
+function registrarUso(nombre){const freq=load("macro_frecuentes",{});freq[nombre]=(freq[nombre]||0)+1;save("macro_frecuentes",freq);}
+
+function calcPreview(selected,cantidad){
+  if(!selected)return null;
+  const cant=parseFloat(cantidad)||0;
+  let gramos,porcionLabel;
+  if(selected.medida==="unidad"){gramos=cant*selected.gramsPorUnidad;porcionLabel=`${cant} ${cant===1?selected.unidadLabel:selected.unidadLabel+"s"} (≈${Math.round(gramos)}g)`;}
+  else{gramos=cant;porcionLabel=`${cant}g`;}
+  const f=gramos/100;
+  return{nombre:selected.nombre,porcion:porcionLabel,kcal:Math.round(selected.kcal*f),proteinas:Math.round(selected.proteinas*f),carbohidratos:Math.round(selected.carbohidratos*f),grasas:Math.round(selected.grasas*f)};
+}
+
+function Ring({value,max,color,size=130}){
+  const pct=Math.min(value/(max||1),1);const r=(size-14)/2;const circ=2*Math.PI*r;
+  return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+      <div style={{position:"relative",width:size,height:size}}>
+        <svg width={size} height={size} style={{transform:"rotate(-90deg)",position:"absolute"}}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={C.border} strokeWidth={10}/>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={10}
+            strokeDasharray={`${circ*pct} ${circ}`} strokeLinecap="round"
+            style={{transition:"stroke-dasharray 0.4s ease"}}/>
+        </svg>
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <div style={{fontSize:size*0.2,fontWeight:800,color:C.text,lineHeight:1}}>{Math.round(value)}</div>
+          <div style={{fontSize:size*0.12,color:C.textDim}}>/ {max}</div>
+        </div>
+      </div>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:12,fontWeight:600,color}}>kcal</div>
+        <div style={{fontSize:11,color:C.textMuted}}>{Math.max(0,max-Math.round(value))} restantes</div>
+      </div>
+    </div>
+  );
+}
+
+function MacroBar({label,value,max,color}){
+  const pct=Math.min(value/(max||1),1)*100;const over=value>max;
+  return(
+    <div style={{marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+        <span style={{fontSize:13,fontWeight:600,color}}>{label}</span>
+        <span style={{fontSize:13,color:over?C.danger:C.textDim}}>{Math.round(value)}g <span style={{color:C.textMuted}}>/ {max}g</span></span>
+      </div>
+      <div style={{height:8,background:C.border,borderRadius:99,overflow:"hidden"}}>
+        <div style={{width:`${pct}%`,height:"100%",background:over?C.danger:color,borderRadius:99,transition:"width 0.4s ease"}}/>
+      </div>
+    </div>
+  );
+}
+
+function MacroGrid({preview}){
+  return(
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:12}}>
+      {[{l:"kcal",v:preview.kcal,c:C.accent},{l:"Prot",v:`${preview.proteinas}g`,c:C.protein},{l:"Carbs",v:`${preview.carbohidratos}g`,c:C.carbs},{l:"Gras",v:`${preview.grasas}g`,c:C.fat}].map(m=>(
+        <div key={m.l} style={{textAlign:"center",background:C.bg,borderRadius:8,padding:"8px 4px"}}>
+          <div style={{fontSize:15,fontWeight:700,color:m.c}}>{m.v}</div>
+          <div style={{fontSize:10,color:C.textMuted}}>{m.l}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BuscadorAlimento({onSeleccionar,onCerrar,tituloBoton="✓ Agregar al día",onAgregar,compact=false}){
+  const[query,setQuery]=useState("");
+  const[cantidad,setCantidad]=useState("100");
+  const[results,setResults]=useState([]);
+  const[selected,setSelected]=useState(null);
+  const frecuentes=getFrecuentes();
+  const preview=useMemo(()=>calcPreview(selected,cantidad),[selected,cantidad]);
+
+  const buscar=q=>{setQuery(q);setSelected(null);if(!q.trim()){setResults([]);return;}setResults(DB.filter(f=>f.nombre.toLowerCase().includes(q.toLowerCase())).slice(0,7));};
+  const seleccionar=item=>{setSelected(item);setResults([]);setCantidad(item.medida==="unidad"?"1":"100");};
+  const confirmar=()=>{if(!preview)return;registrarUso(selected.nombre);onAgregar(preview);setQuery("");setResults([]);setSelected(null);setCantidad("100");};
+
+  return(
+    <>
+      {frecuentes.length>0&&!query&&!selected&&(
+        <div style={{marginBottom:10}}>
+          <div style={{fontSize:11,color:C.textMuted,marginBottom:6,fontWeight:600,letterSpacing:"0.4px"}}>FRECUENTES</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {frecuentes.map((f,i)=>(
+              <button key={i} onClick={()=>seleccionar(f)} style={{border:`1px solid ${C.border}`,borderRadius:20,background:C.surface,color:C.text,fontSize:12,padding:"5px 12px",cursor:"pointer"}}>{f.nombre}</button>
+            ))}
+          </div>
+        </div>
+      )}
+      <input style={{...S.input,marginBottom:8}} type="text" value={query} placeholder="ej: pollo, arroz, huevo..." onChange={e=>buscar(e.target.value)}/>
+      {results.length>0&&!selected&&(
+        <div style={{background:C.surface,borderRadius:10,overflow:"hidden",marginBottom:10}}>
+          {results.map((r,i)=>(
+            <button key={i} onClick={()=>seleccionar(r)} style={{width:"100%",border:"none",borderBottom:i<results.length-1?`1px solid ${C.border}`:"none",background:"transparent",color:C.text,padding:"11px 14px",textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontSize:14}}>{r.nombre}</span>
+              <span style={{fontSize:12,color:C.textMuted}}>{r.medida==="unidad"?`por ${r.unidadLabel}`:"por 100g"}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {selected&&(
+        <>
+          <div style={{background:C.surface,borderRadius:10,padding:"10px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <span style={{fontSize:14,fontWeight:600}}>{selected.nombre}</span>
+            <button onClick={()=>{setSelected(null);setQuery("");}} style={{border:"none",background:"transparent",color:C.textMuted,cursor:"pointer",fontSize:16}}>✕</button>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={S.label}>{selected.medida==="unidad"?`Cantidad (${selected.unidadLabel}s)`:"Cantidad (gramos)"}</div>
+            <input style={S.input} type="number" value={cantidad} step={selected.medida==="unidad"?"1":"10"} onChange={e=>setCantidad(e.target.value)}/>
+            {selected.medida==="unidad"&&<div style={{fontSize:11,color:C.textMuted,marginTop:4}}>1 {selected.unidadLabel} ≈ {selected.gramsPorUnidad}g</div>}
+          </div>
+          {preview&&<MacroGrid preview={preview}/>}
+          <button style={{...S.btn("primary"),width:"100%"}} onClick={confirmar}>{tituloBoton}</button>
+        </>
+      )}
+      {query.length>1&&results.length===0&&!selected&&<div style={{fontSize:13,color:C.textMuted,textAlign:"center",padding:"12px 0"}}>No encontrado.</div>}
+    </>
+  );
+}
+
+function PanelAgregar({onAgregar,onCerrar,combinadas}){
+  const[modo,setModo]=useState("buscar");
+  return(
+    <div style={S.card}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{display:"flex",gap:0}}>
+          {["buscar","combinadas"].map(m=>(
+            <button key={m} onClick={()=>setModo(m)} style={{border:"none",borderBottom:`2px solid ${modo===m?C.accent:"transparent"}`,background:"transparent",color:modo===m?C.accent:C.textMuted,fontSize:13,fontWeight:600,padding:"4px 10px 6px",cursor:"pointer"}}>
+              {m==="buscar"?"Buscar":"Mis combis"}
+            </button>
+          ))}
+        </div>
+        <button onClick={onCerrar} style={{border:"none",background:"transparent",color:C.textMuted,fontSize:20,cursor:"pointer"}}>×</button>
+      </div>
+      {modo==="buscar"&&<BuscadorAlimento onAgregar={item=>{onAgregar([{...item,id:Date.now()}]);onCerrar();}}/>}
+      {modo==="combinadas"&&(
+        combinadas.length===0
+          ?<div style={{textAlign:"center",color:C.textMuted,padding:"20px 0",fontSize:13}}>Todavía no tenés combis.<br/>Creá una en la pestaña 🍱</div>
+          :combinadas.map((c,i)=>{
+            const tot=c.items.reduce((a,it)=>({kcal:a.kcal+it.kcal,prot:a.prot+it.proteinas,carbs:a.carbs+it.carbohidratos,fat:a.fat+it.grasas}),{kcal:0,prot:0,carbs:0,fat:0});
+            return(
+              <div key={i} style={{borderBottom:`1px solid ${C.border}`,paddingBottom:10,marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:14,fontWeight:700}}>{c.nombre}</span>
+                  <button onClick={()=>{onAgregar(c.items.map((it,j)=>({...it,id:Date.now()+j})));onCerrar();}} style={{...S.btn("primary"),padding:"6px 14px",fontSize:12}}>+ Agregar</button>
+                </div>
+                <div style={{fontSize:11,color:C.textDim}}>{tot.kcal} kcal · P {tot.prot}g · C {tot.carbs}g · G {tot.fat}g</div>
+                <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{c.items.map(it=>it.nombre).join(", ")}</div>
+              </div>
+            );
+          })
+      )}
+    </div>
+  );
+}
+
+function PantallaPerfil({profile,onSave}){
+  const[form,setForm]=useState(profile);
+  const tdee=calcTDEE(form);
+  const set=(k,v)=>setForm(p=>({...p,[k]:v}));
+  return(
+    <div style={{padding:"16px 16px 0"}}>
+      <div style={S.card}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:14}}>Mi perfil</div>
+        <div style={{marginBottom:10}}>
+          <div style={S.label}>Nombre</div>
+          <input style={S.input} type="text" value={form.name||""} placeholder="Tu nombre" onChange={e=>set("name",e.target.value)}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
+          {[{k:"weight",label:"Peso (kg)",ph:"75"},{k:"height",label:"Altura (cm)",ph:"175"},{k:"age",label:"Edad",ph:"28"}].map(f=>(
+            <div key={f.k}>
+              <div style={S.label}>{f.label}</div>
+              <input style={S.input} type="number" value={form[f.k]||""} placeholder={f.ph} onChange={e=>set(f.k,parseFloat(e.target.value)||"")}/>
+            </div>
+          ))}
+          <div>
+            <div style={S.label}>Sexo</div>
+            <select style={S.select} value={form.sex} onChange={e=>set("sex",e.target.value)}>
+              <option value="M">Masculino</option><option value="F">Femenino</option>
+            </select>
+          </div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <div style={S.label}>Nivel de actividad</div>
+          <select style={S.select} value={form.activity} onChange={e=>set("activity",parseInt(e.target.value))}>
+            {ACTIVITY.map((a,i)=><option key={i} value={i}>{a.label}</option>)}
+          </select>
+        </div>
+        {tdee&&(
+          <div style={{background:C.surface,borderRadius:10,padding:"12px 14px",marginBottom:14,textAlign:"center"}}>
+            <div style={{fontSize:11,color:C.textDim,marginBottom:4}}>GASTO CALÓRICO DIARIO</div>
+            <div style={{fontSize:28,fontWeight:800,color:C.accent}}>{tdee} <span style={{fontSize:14,fontWeight:400}}>kcal</span></div>
+          </div>
+        )}
+        <button style={{...S.btn("primary"),width:"100%"}} onClick={()=>{save("macro_profile",form);onSave(form);}}>Guardar perfil</button>
+      </div>
+    </div>
+  );
+}
+
+function PantallaObjetivo({profile,goal,onSave}){
+  const[sel,setSel]=useState(goal);
+  const targets=calcTargets(profile,sel);
+  return(
+    <div style={{padding:"16px 16px 0"}}>
+      <div style={S.card}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:14}}>Mi objetivo</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+          {GOALS.map(g=>(
+            <button key={g.key} onClick={()=>setSel(g.key)} style={{border:`2px solid ${sel===g.key?C.accent:C.border}`,borderRadius:12,padding:"14px 16px",background:sel===g.key?C.accentDim:C.surface,color:C.text,textAlign:"left",cursor:"pointer",display:"flex",alignItems:"center",gap:12}}>
+              <span style={{fontSize:22}}>{g.emoji}</span>
+              <div>
+                <div style={{fontWeight:700,fontSize:15}}>{g.label}</div>
+                <div style={{fontSize:12,color:C.textDim,marginTop:2}}>{g.delta>0?`+${g.delta}`:g.delta===0?"±0":g.delta} kcal vs TDEE</div>
+              </div>
+            </button>
+          ))}
+        </div>
+        {targets&&(
+          <div style={{background:C.surface,borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+            <div style={{fontSize:12,color:C.textDim,marginBottom:10,fontWeight:600}}>TUS METAS DIARIAS</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[{label:"Calorías",val:targets.kcal,unit:"kcal",color:C.accent},{label:"Proteínas",val:targets.protein,unit:"g",color:C.protein},{label:"Carbohidratos",val:targets.carbs,unit:"g",color:C.carbs},{label:"Grasas",val:targets.fat,unit:"g",color:C.fat}].map(m=>(
+                <div key={m.label} style={{textAlign:"center",padding:"10px 0"}}>
+                  <div style={{fontSize:22,fontWeight:800,color:m.color}}>{m.val}</div>
+                  <div style={{fontSize:11,color:C.textDim}}>{m.unit}</div>
+                  <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <button style={{...S.btn("primary"),width:"100%"}} onClick={()=>{save("macro_goal",sel);onSave(sel);}}>Confirmar objetivo</button>
+      </div>
+    </div>
+  );
+}
+
+function PantallaHoy({profile,goal,combinadas}){
+  const targets=calcTargets(profile,goal);
+  const[offset,setOffset]=useState(0);
+  const currentKey=dateKey(offset);
+  const esHoy=offset===0;
+  const[entries,setEntries]=useState(()=>load(`macro_day_${currentKey}`,[]) );
+  const[showAdd,setShowAdd]=useState(false);
+
+  const changeDay=delta=>{
+    const no=offset+delta;setOffset(no);
+    setEntries(load(`macro_day_${dateKey(no)}`,[]) );setShowAdd(false);
+  };
+  const saveEntries=list=>{setEntries(list);save(`macro_day_${currentKey}`,list);};
+  const totals=entries.reduce((acc,e)=>({kcal:acc.kcal+e.kcal,protein:acc.protein+e.proteinas,carbs:acc.carbs+e.carbohidratos,fat:acc.fat+e.grasas}),{kcal:0,protein:0,carbs:0,fat:0});
+
+  const profileOk=profile.weight&&profile.height&&profile.age;
+  if(!profileOk)return(<div style={{padding:24,textAlign:"center",color:C.textDim,marginTop:40}}><div style={{fontSize:32,marginBottom:12}}>👤</div><div style={{fontSize:15}}>Completá tu perfil primero.</div></div>);
+
+  return(
+    <div style={{padding:"16px 16px 0"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <button onClick={()=>changeDay(-1)} style={{border:"none",background:C.card,color:C.text,borderRadius:8,padding:"6px 14px",fontSize:18,cursor:"pointer"}}>◀</button>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.text}}>{formatFecha(currentKey)}</div>
+          {!esHoy&&<div style={{fontSize:11,color:C.textMuted}}>{currentKey}</div>}
+        </div>
+        <button onClick={()=>changeDay(1)} disabled={esHoy} style={{border:"none",background:esHoy?C.surface:C.card,color:esHoy?C.textMuted:C.text,borderRadius:8,padding:"6px 14px",fontSize:18,cursor:esHoy?"default":"pointer"}}>▶</button>
+      </div>
+      <div style={{...S.card,display:"flex",justifyContent:"center",padding:"20px 18px"}}>
+        <Ring value={totals.kcal} max={targets?.kcal||2000} color={C.accent}/>
+      </div>
+      <div style={S.card}>
+        <MacroBar label="Proteínas" value={totals.protein} max={targets?.protein||150} color={C.protein}/>
+        <MacroBar label="Carbohidratos" value={totals.carbs} max={targets?.carbs||250} color={C.carbs}/>
+        <MacroBar label="Grasas" value={totals.fat} max={targets?.fat||70} color={C.fat}/>
+      </div>
+      {esHoy&&!showAdd&&(
+        <button style={{...S.btn("primary"),width:"100%",marginBottom:12,fontSize:15,padding:14}} onClick={()=>setShowAdd(true)}>+ Agregar alimento</button>
+      )}
+      {esHoy&&showAdd&&(
+        <PanelAgregar combinadas={combinadas} onCerrar={()=>setShowAdd(false)} onAgregar={items=>saveEntries([...entries,...items])}/>
+      )}
+      {entries.length>0&&(
+        <div style={S.card}>
+          <div style={{fontSize:12,fontWeight:600,color:C.textDim,marginBottom:10}}>{esHoy?"LO QUE COMISTE HOY":`LO QUE COMISTE EL ${formatFecha(currentKey).toUpperCase()}`}</div>
+          {entries.map(e=>(
+            <div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600}}>{e.nombre}</div>
+                <div style={{fontSize:11,color:C.textDim,marginTop:2}}>{e.porcion} · {e.kcal} kcal · P {e.proteinas}g · C {e.carbohidratos}g · G {e.grasas}g</div>
+              </div>
+              {esHoy&&<button onClick={()=>saveEntries(entries.filter(x=>x.id!==e.id))} style={{border:"none",background:"transparent",color:C.textMuted,fontSize:20,cursor:"pointer",padding:"4px 8px"}}>×</button>}
+            </div>
+          ))}
+        </div>
+      )}
+      {entries.length===0&&!(esHoy&&showAdd)&&(
+        <div style={{textAlign:"center",color:C.textMuted,padding:"24px 0",fontSize:14}}>{esHoy?"Todavía no registraste nada hoy.":"Sin registros para este día."}</div>
+      )}
+    </div>
+  );
+}
+
+function PantallaCombinadas({combinadas,onSave}){
+  const[nombre,setNombre]=useState("");
+  const[items,setItems]=useState([]);
+  const[creando,setCreando]=useState(false);
+
+  const totCombi=items.reduce((a,it)=>({kcal:a.kcal+it.kcal,prot:a.prot+it.proteinas,carbs:a.carbs+it.carbohidratos,fat:a.fat+it.grasas}),{kcal:0,prot:0,carbs:0,fat:0});
+  const guardar=()=>{if(!nombre.trim()||items.length===0)return;onSave([...combinadas,{nombre:nombre.trim(),items,id:Date.now()}]);setNombre("");setItems([]);setCreando(false);};
+  const eliminar=id=>onSave(combinadas.filter(c=>c.id!==id));
+
+  return(
+    <div style={{padding:"16px 16px 0"}}>
+      {!creando&&<button style={{...S.btn("primary"),width:"100%",marginBottom:12,fontSize:15,padding:14}} onClick={()=>setCreando(true)}>+ Nueva combi</button>}
+      {creando&&(
+        <div style={S.card}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <div style={{fontSize:14,fontWeight:700}}>Nueva combi</div>
+            <button onClick={()=>{setCreando(false);setNombre("");setItems([]);}} style={{border:"none",background:"transparent",color:C.textMuted,fontSize:20,cursor:"pointer"}}>×</button>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={S.label}>Nombre de la combi</div>
+            <input style={S.input} type="text" value={nombre} placeholder="ej: Desayuno habitual" onChange={e=>setNombre(e.target.value)}/>
+          </div>
+          {items.length>0&&(
+            <div style={{marginBottom:10}}>
+              {items.map((it,i)=>(
+                <div key={it.id||i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                  <div><div style={{fontSize:13,fontWeight:600}}>{it.nombre}</div><div style={{fontSize:11,color:C.textDim}}>{it.porcion} · {it.kcal} kcal</div></div>
+                  <button onClick={()=>setItems(items.filter((_,j)=>j!==i))} style={{border:"none",background:"transparent",color:C.textMuted,fontSize:18,cursor:"pointer"}}>×</button>
+                </div>
+              ))}
+              <div style={{fontSize:12,color:C.accent,marginTop:8,fontWeight:600}}>Total: {totCombi.kcal} kcal · P {totCombi.prot}g · C {totCombi.carbs}g · G {totCombi.fat}g</div>
+            </div>
+          )}
+          <BuscadorAlimento tituloBoton="+ Sumar ingrediente" onAgregar={item=>setItems([...items,{...item,id:Date.now()}])}/>
+          <button style={{...S.btn("primary"),width:"100%",marginTop:8}} onClick={guardar} disabled={!nombre.trim()||items.length===0}>Guardar combi</button>
+        </div>
+      )}
+      {combinadas.length===0&&!creando&&<div style={{textAlign:"center",color:C.textMuted,padding:"24px 0",fontSize:14}}>Todavía no tenés combis guardadas.</div>}
+      {combinadas.map(c=>{
+        const tot=c.items.reduce((a,it)=>({kcal:a.kcal+it.kcal,prot:a.prot+it.proteinas,carbs:a.carbs+it.carbohidratos,fat:a.fat+it.grasas}),{kcal:0,prot:0,carbs:0,fat:0});
+        return(
+          <div key={c.id} style={S.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+              <div style={{fontSize:15,fontWeight:700}}>{c.nombre}</div>
+              <button onClick={()=>eliminar(c.id)} style={{border:"none",background:"transparent",color:C.danger,fontSize:13,cursor:"pointer",padding:"0 4px"}}>Eliminar</button>
+            </div>
+            <div style={{fontSize:12,color:C.accent,marginBottom:4,fontWeight:600}}>{tot.kcal} kcal · P {tot.prot}g · C {tot.carbs}g · G {tot.fat}g</div>
+            <div style={{fontSize:12,color:C.textDim}}>{c.items.map(it=>`${it.nombre} (${it.porcion})`).join(" · ")}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function App(){
+  const[tab,setTab]=useState("hoy");
+  const[profile,setProfile]=useState(()=>load("macro_profile",{name:"",weight:"",height:"",age:"",sex:"M",activity:2}));
+  const[goal,setGoal]=useState(()=>load("macro_goal","maintain"));
+  const[combinadas,setCombinadas]=useState(()=>load("macro_combinadas",[]));
+  const saveCombinadas=list=>{setCombinadas(list);save("macro_combinadas",list);};
+
+  const TABS=[{key:"hoy",label:"Hoy",icon:"🍽️"},{key:"combinadas",label:"Combis",icon:"🍱"},{key:"objetivo",label:"Objetivo",icon:"🎯"},{key:"perfil",label:"Perfil",icon:"👤"}];
+  const titles={hoy:"Registro diario",combinadas:"Mis combis",objetivo:"Mi objetivo",perfil:"Mi perfil"};
+
+  return(
+    <div style={S.app}>
+      <div style={S.header}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:22}}>💪</span>
+          <span style={S.headerTitle}>Mass</span>
+          {tab!=="hoy"&&<span style={{...S.headerTitle,color:C.textDim,fontWeight:400,fontSize:14}}>· {titles[tab]}</span>}
+        </div>
+        {tab==="hoy"&&profile.name&&<span style={{fontSize:12,color:C.textDim}}>Hola, {profile.name}</span>}
+      </div>
+      {tab==="hoy"&&<PantallaHoy profile={profile} goal={goal} combinadas={combinadas}/>}
+      {tab==="combinadas"&&<PantallaCombinadas combinadas={combinadas} onSave={saveCombinadas}/>}
+      {tab==="objetivo"&&<PantallaObjetivo profile={profile} goal={goal} onSave={setGoal}/>}
+      {tab==="perfil"&&<PantallaPerfil profile={profile} onSave={setProfile}/>}
+      <nav style={S.nav}>
+        {TABS.map(t=>(
+          <button key={t.key} style={S.navBtn(tab===t.key)} onClick={()=>setTab(t.key)}>
+            <span style={{fontSize:20}}>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
