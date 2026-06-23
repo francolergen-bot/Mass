@@ -595,10 +595,10 @@ function PantallaHoy({profile,goal,combinadas}){
         <MacroBar label="Carbohidratos" value={totals.carbs} max={targets?.carbs||250} color={C.carbs}/>
         <MacroBar label="Grasas" value={totals.fat} max={targets?.fat||70} color={C.fat}/>
       </div>
-      {esHoy&&!showAdd&&(
+      {!showAdd&&(
         <button style={{...S.btn("primary"),width:"100%",marginBottom:12,fontSize:15,padding:14}} onClick={()=>setShowAdd(true)}>+ Agregar alimento</button>
       )}
-      {esHoy&&showAdd&&(
+      {showAdd&&(
         <PanelAgregar combinadas={combinadas} onCerrar={()=>setShowAdd(false)} onAgregar={items=>saveEntries([...entries,...items])}/>
       )}
       {entries.length>0&&(
@@ -610,12 +610,12 @@ function PantallaHoy({profile,goal,combinadas}){
                 <div style={{fontSize:14,fontWeight:600}}>{e.nombre}</div>
                 <div style={{fontSize:11,color:C.textDim,marginTop:2}}>{e.porcion} · {e.kcal} kcal · P {e.proteinas}g · C {e.carbohidratos}g · G {e.grasas}g</div>
               </div>
-              {esHoy&&<button onClick={()=>saveEntries(entries.filter(x=>x.id!==e.id))} style={{border:"none",background:"transparent",color:C.textMuted,fontSize:20,cursor:"pointer",padding:"4px 8px"}}>×</button>}
+              <button onClick={()=>saveEntries(entries.filter(x=>x.id!==e.id))} style={{border:"none",background:"transparent",color:C.textMuted,fontSize:20,cursor:"pointer",padding:"4px 8px"}}>×</button>
             </div>
           ))}
         </div>
       )}
-      {entries.length===0&&!(esHoy&&showAdd)&&(
+      {entries.length===0&&!showAdd&&(
         <div style={{textAlign:"center",color:C.textMuted,padding:"24px 0",fontSize:14}}>{esHoy?"Todavía no registraste nada hoy.":"Sin registros para este día."}</div>
       )}
     </div>
